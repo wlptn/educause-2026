@@ -1,0 +1,19 @@
+# rhdp: primary model configuration -- the default backend for course workbenches.
+# This Secret is created per-course by the course-model-access Ansible role; it is kept here
+# as a reference/template. Replace the endpoint apps-domain and the shared key before applying.
+#
+# On the rhdp cluster the model is served in-cluster by OpenShift AI MaaS (Kuadrant + KServe):
+#   model:    qwen3-4b-instruct   (LLMInferenceService in namespace `llm`)
+#   endpoint: http://maas.<apps-domain>/llm/qwen3-4b-instruct   (confirm /v1 suffix via curl)
+# Auth is a SHARED MaaS API key for the demo -- do NOT commit a real key.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: model-config
+  labels:
+    educause.demo/component: model-access
+type: Opaque
+stringData:
+  MODEL_ENDPOINT: "http://maas.apps.ocp.CHANGEME.opentlc.com/llm/qwen3-4b-instruct/v1"
+  MODEL_API_KEY: "REPLACE_WITH_SHARED_MAAS_KEY"
+  MODEL_NAME: "qwen3-4b-instruct"

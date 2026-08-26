@@ -1,0 +1,88 @@
+---
+- name: Provision course environment
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    course_presets:
+      cs485-intro-to-ai:
+        course_name: "Intro to AI for Business"
+        course_code: "CS485"
+        department: "computer-science"
+        course_template: "ai-fundamentals"
+      stat200-data-science:
+        course_name: "Data Science Fundamentals"
+        course_code: "STAT200"
+        department: "statistics"
+        course_template: "data-science"
+      bus350-ai-for-business:
+        course_name: "AI Applications in Business"
+        course_code: "BUS350"
+        department: "business"
+        course_template: "nlp"
+
+    selected_preset: "{{ course_presets[course_preset] }}"
+    course_name: "{{ selected_preset.course_name }}"
+    course_code: "{{ selected_preset.course_code }}"
+    department: "{{ selected_preset.department }}"
+    course_template: "{{ selected_preset.course_template }}"
+    professor_email: "{{ professor_email | default('professor@university.edu') }}"
+    student_count: "{{ student_count | int }}"
+    env_duration: "{{ env_duration | default('4h') }}"
+    workbench_type: "{{ workbench_type | default('jupyter') }}"
+
+    semester_start: "{{ ansible_date_time.date }}"
+    semester_end: "{{ semester_end_calculated }}"
+
+    course_namespace: "course-{{ course_code | lower | regex_replace('[^a-z0-9-]', '-') }}"
+    # rhdp apps domain is sandbox-specific (changes on every reprovision).
+    # Override per environment via CLUSTER_APPS_DOMAIN env var or an extra var / survey.
+    cluster_domain: "{{ lookup('env','CLUSTER_APPS_DOMAIN') | default('apps.ocp.CHANGEME.opentlc.com', true) }}"
+    mailpit_smtp_host: "mailpit-smtp.mailpit.svc.cluster.local"
+    mailpit_smtp_port: 1025
+
+  pre_tasks:
+    - name: Calculate environment end date from duration
+      ansible.builtin.set_fact:
+        semester_end_calculated: >-
+          {%- set dur = env_duration | default('4h') -%}
+          {%- set now = ansible_date_time.epoch | int -%}
+          {%- if dur == '2h' -%}{{ '%Y-%m-%d %H:%M' | strftime(now + 7200) }}
+          {%- elif dur == '4h' -%}{{ '%Y-%m-%d %H:%M' | strftime(now + 14400) }}
+          {%- elif dur == '8h' -%}{{ '%Y-%m-%d %H:%M' | strftime(now + 28800) }}
+          {%- elif dur == '24h' -%}{{ '%Y-%m-%d %H:%M' | strftime(now + 86400) }}
+          {%- elif dur == '7d' -%}{{ '%Y-%m-%d %H:%M' | strftime(now + 604800) }}
+          {%- else -%}{{ '%Y-%m-%d %H:%M' | strftime(now + 10368000) }}
+          {%- endif -%}
+
+    - name: Calculate teardown delay in seconds
+      ansible.builtin.set_fact:
+        teardown_delay_seconds: >-
+          {%- set dur = env_duration | default('4h') -%}
+          {%- if dur == '2h' -%}7200
+          {%- elif dur == '4h' -%}14400
+          {%- elif dur == '8h' -%}28800
+          {%- elif dur == '24h' -%}86400
+          {%- elif dur == '7d' -%}604800
+          {%- else -%}10368000
+          {%- endif -%}
+
+  roles:
+    - course-namespace
+    - course-model-access
+    - course-workbenches
+
+  post_tasks:
+    - name: Log environment lifecycle
+      ansible.builtin.debug:
+        msg: >-
+          Environment "{{ course_name }}" ({{ course_code }}) provisioned.
+          Duration: {{ env_duration }}.
+          {% if env_duration != 'semester' %}
+          Expires: {{ semester_end }}.
+          Namespace annotation educause.demo/env-expires can be watched by
+          EDA or a CronJob reaper to trigger automatic teardown.
+          {% else %}
+          No expiry set -- manual teardown required via the Automation Portal.
+          {% endif %}

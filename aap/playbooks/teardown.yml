@@ -1,0 +1,33 @@
+---
+- name: Teardown course environment
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    course_presets:
+      cs485-intro-to-ai:
+        course_name: "Intro to AI for Business"
+        course_code: "CS485"
+        department: "computer-science"
+      stat200-data-science:
+        course_name: "Data Science Fundamentals"
+        course_code: "STAT200"
+        department: "statistics"
+      bus350-ai-for-business:
+        course_name: "AI Applications in Business"
+        course_code: "BUS350"
+        department: "business"
+
+    selected_preset: "{{ course_presets[course_preset] }}"
+    course_name: "{{ selected_preset.course_name }}"
+    course_code: "{{ selected_preset.course_code }}"
+    confirm_teardown: "{{ confirm_teardown | default('no') }}"
+    professor_email: "{{ professor_email | default('professor@university.edu') }}"
+    course_namespace: "course-{{ course_code | lower | regex_replace('[^a-z0-9-]', '-') }}"
+    mailpit_smtp_host: "mailpit-smtp.mailpit.svc.cluster.local"
+    mailpit_smtp_port: 1025
+
+  roles:
+    - role: course-teardown
+      when: confirm_teardown == "yes"

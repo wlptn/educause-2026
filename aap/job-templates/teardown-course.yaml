@@ -1,0 +1,38 @@
+# AAP Controller Job Template -- teardown a course environment.
+---
+name: "Teardown Course Environment"
+description: "Self-service: removes namespace and all resources for a course"
+organization: "Default"
+project: "Educause 2026"
+playbook: "aap/playbooks/teardown.yml"
+execution_environment: "Default execution environment"
+credential: "OpenShift Cluster"
+ask_variables_on_launch: false
+survey_enabled: true
+survey_spec:
+  name: "Teardown Confirmation"
+  spec:
+    - question_name: "Course"
+      question_description: "Select the course to tear down"
+      variable: course_preset
+      type: multiplechoice
+      required: true
+      default: "cs485-intro-to-ai"
+      choices:
+        - cs485-intro-to-ai
+        - stat200-data-science
+        - bus350-ai-for-business
+    - question_name: "Professor Email (for confirmation)"
+      variable: professor_email
+      type: text
+      required: true
+      default: "prof.smith@university.edu"
+    - question_name: "Confirm Teardown"
+      question_description: "Type 'yes' to confirm deletion of all course resources"
+      variable: confirm_teardown
+      type: multiplechoice
+      required: true
+      default: "no"
+      choices:
+        - "yes"
+        - "no"

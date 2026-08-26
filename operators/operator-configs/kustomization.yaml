@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# rhdp branch: DataScienceCluster already exists on the cluster (ArgoCD-managed),
+# so only the AAP AutomationController is configured here.
+resources:
+  - automationcontroller.yaml

@@ -1,0 +1,36 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: jupyter-edu
+  namespace: redhat-ods-applications
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: jupyter-edu:latest
+  source:
+    type: Git
+    git:
+      uri: "https://github.com/wlptn/educause-2026.git"
+      ref: rhdp
+    contextDir: workbenches
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile.jupyter-edu
+  triggers:
+    - type: ConfigChange
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: jupyter-edu
+  namespace: redhat-ods-applications
+  labels:
+    opendatahub.io/notebook-image: "true"
+  annotations:
+    opendatahub.io/notebook-image-name: "Jupyter Education"
+    opendatahub.io/notebook-image-desc: "Jupyter notebook with AI/ML libraries for course labs"
+spec:
+  lookupPolicy:
+    local: true

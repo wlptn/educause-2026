@@ -1,0 +1,61 @@
+# AAP Controller Job Template -- provision a course environment.
+# Import via the ansible.controller collection or create through the UI.
+#
+# This single job template runs the provision.yml playbook which calls
+# three roles in sequence: course-namespace, course-model-access,
+# course-workbenches.
+---
+name: "Provision Course Environment"
+description: "Self-service: creates namespace, model access, and workbenches for a course"
+organization: "Default"
+project: "Educause 2026"
+playbook: "aap/playbooks/provision.yml"
+execution_environment: "Default execution environment"
+credential: "OpenShift Cluster"
+ask_variables_on_launch: false
+survey_enabled: true
+survey_spec:
+  name: "Course Details"
+  spec:
+    - question_name: "Course"
+      question_description: "Select a course -- sets name, code, department, and content automatically"
+      variable: course_preset
+      type: multiplechoice
+      required: true
+      default: "cs485-intro-to-ai"
+      choices:
+        - cs485-intro-to-ai
+        - stat200-data-science
+        - bus350-ai-for-business
+    - question_name: "Professor Email"
+      variable: professor_email
+      type: text
+      required: true
+      default: "prof.smith@university.edu"
+    - question_name: "Number of Students"
+      variable: student_count
+      type: integer
+      required: true
+      default: 3
+      min: 1
+      max: 50
+    - question_name: "Environment Duration"
+      question_description: "How long the environment stays active before automatic teardown"
+      variable: env_duration
+      type: multiplechoice
+      required: true
+      default: "4h"
+      choices:
+        - 2h
+        - 4h
+        - 8h
+        - 24h
+        - 7d
+        - semester
+    - question_name: "Workbench Type"
+      variable: workbench_type
+      type: multiplechoice
+      required: true
+      default: jupyter
+      choices:
+        - jupyter

@@ -1,0 +1,189 @@
+---
+- name: Generate student list if not provided
+  ansible.builtin.set_fact:
+    student_list: "{{ student_names if student_names | length > 0 else range(1, student_count | int + 1) | map('regex_replace', '^(.*)$', 'student-\\1') | list }}"
+
+- name: Create PVC for each student workbench
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: "{{ course_code | lower }}-{{ item }}-pvc"
+        namespace: "{{ course_namespace }}"
+        labels:
+          educause.demo/course-code: "{{ course_code }}"
+          educause.demo/student: "{{ item }}"
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi
+  loop: "{{ student_list }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Create workbench for each student
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: kubeflow.org/v1
+      kind: Notebook
+      metadata:
+        name: "{{ course_code | lower }}-{{ item }}"
+        namespace: "{{ course_namespace }}"
+        labels:
+          educause.demo/course-code: "{{ course_code }}"
+          educause.demo/student: "{{ item }}"
+          opendatahub.io/dashboard: "true"
+        annotations:
+          notebooks.opendatahub.io/inject-oauth: "true"
+          opendatahub.io/image-display-name: "Jupyter Education"
+          opendatahub.io/accelerator-name: ""
+          openshift.io/display-name: "{{ course_name }} - {{ item }}"
+      spec:
+        template:
+          spec:
+            initContainers:
+              - name: clone-course-content
+                image: registry.redhat.io/openshift4/ose-cli-rhel9:latest
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+                  limits:
+                    cpu: 200m
+                    memory: 256Mi
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    TEMPLATE="{{ course_template | default('ai-fundamentals') }}"
+                    if [ ! -f /workspace/labs/.cloned ]; then
+                      echo "Loading content pack: ${TEMPLATE}"
+                      cd /tmp
+                      curl -sL "{{ git_url }}/{{ git_user }}/{{ git_repo }}/archive/{{ git_branch | default('rhdp') }}.tar.gz" | tar xz
+                      mkdir -p /workspace/labs
+                      if [ -d */notebooks/${TEMPLATE} ]; then
+                        cp -r */notebooks/${TEMPLATE}/* /workspace/labs/
+                        echo "${TEMPLATE}" > /workspace/labs/.cloned
+                        echo "Loaded $(ls /workspace/labs/*.ipynb 2>/dev/null | wc -l) notebook(s)."
+                      else
+                        echo "WARNING: Content pack '${TEMPLATE}' not found, loading all notebooks."
+                        cp -r */notebooks/*/*.ipynb /workspace/labs/ 2>/dev/null || true
+                        echo "all" > /workspace/labs/.cloned
+                      fi
+                    else
+                      echo "Course content already present ($(cat /workspace/labs/.cloned)), skipping."
+                    fi
+                volumeMounts:
+                  - name: workspace
+                    mountPath: /workspace
+            containers:
+              - name: notebook
+                image: "{{ workbench_images[workbench_type] }}"
+                resources:
+                  requests:
+                    cpu: 200m
+                    memory: 512Mi
+                  limits:
+                    cpu: "1"
+                    memory: 2Gi
+                ports:
+                  - name: notebook-port
+                    containerPort: 8888
+                    protocol: TCP
+                envFrom:
+                  - secretRef:
+                      name: model-config
+                env:
+                  - name: NOTEBOOK_ARGS
+                    value: "--NotebookApp.token='' --NotebookApp.password=''"
+                volumeMounts:
+                  - name: workspace
+                    mountPath: /opt/app-root/src
+                workingDir: /opt/app-root/src
+            volumes:
+              - name: workspace
+                persistentVolumeClaim:
+                  claimName: "{{ course_code | lower }}-{{ item }}-pvc"
+  loop: "{{ student_list }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Build workbench URL list
+  ansible.builtin.set_fact:
+    workbench_urls: "{{ workbench_urls | default({}) | combine({item: 'https://' + course_code | lower + '-' + item + '-' + course_namespace + '.' + cluster_domain}) }}"
+  loop: "{{ student_list }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Send professor notification email
+  community.general.mail:
+    host: "{{ mailpit_smtp_host }}"
+    port: "{{ mailpit_smtp_port }}"
+    from: "AAP Automation <aap@educause-demo.example.com>"
+    to: "{{ professor_email }}"
+    subject: "Course {{ course_name }} ({{ course_code }}) - Environment Ready"
+    body: |
+      Dear Professor,
+
+      Your course environment has been provisioned successfully.
+
+      Course: {{ course_name }} ({{ course_code }})
+      Department: {{ department | default('N/A') }}
+      Workbenches: {{ student_list | length }} student workbench(es) created
+      Duration: {{ env_duration | default('semester') }}
+      Expires: {{ semester_end | default('manual teardown required') }}
+
+      Student workbench URLs:
+      {% for student in student_list %}
+      - {{ student }}: {{ workbench_urls[student] }}
+      {% endfor %}
+
+      RHOAI Dashboard: https://rhods-dashboard-redhat-ods-applications.{{ cluster_domain }}
+
+      {% if env_duration | default('semester') != 'semester' %}
+      This environment will be automatically torn down at {{ semester_end }}.
+      {% endif %}
+
+      Teardown this course (one click):
+      https://redhat-rhaap-portal-aap-portal.{{ cluster_domain }}/create/templates/default/teardown-course-environment
+
+      Automation Portal:
+      https://redhat-rhaap-portal-aap-portal.{{ cluster_domain }}
+
+      -- Ansible Automation Platform
+  ignore_errors: true
+
+- name: Send welcome email to each student
+  community.general.mail:
+    host: "{{ mailpit_smtp_host }}"
+    port: "{{ mailpit_smtp_port }}"
+    from: "{{ course_name }} Lab <aap@educause-demo.example.com>"
+    to: "{{ item }}@{{ course_code | lower }}.edu"
+    subject: "Welcome to {{ course_name }} - Your AI Lab is Ready"
+    body: |
+      Welcome to {{ course_name }}!
+
+      Your personal AI lab workbench is ready. Click the link below to get started:
+
+      Workbench URL: {{ workbench_urls[item] }}
+
+      Getting started:
+      1. Click the link above and log in with your university credentials
+      2. Open the "labs" folder in JupyterLab
+      3. Start with "Lab 01 - First LLM Call"
+
+      Your workbench has pre-configured access to AI models -- no API keys or setup required.
+
+      Want to explore the full platform?
+      RHOAI Dashboard: https://rhods-dashboard-redhat-ods-applications.{{ cluster_domain }}
+
+      -- {{ course_name }} Course Staff
+  loop: "{{ student_list }}"
+  loop_control:
+    label: "{{ item }}"
+  ignore_errors: true

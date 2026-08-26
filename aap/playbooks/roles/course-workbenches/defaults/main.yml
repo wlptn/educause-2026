@@ -1,0 +1,31 @@
+---
+course_code: ""
+course_name: ""
+course_namespace: "course-{{ course_code | lower | regex_replace('[^a-z0-9-]', '-') }}"
+student_count: 5
+workbench_type: jupyter
+professor_email: "professor@university.edu"
+
+# rhdp apps domain is sandbox-specific (changes per reprovision). Set in provision.yml /
+# passed as an extra var; this default is only a fallback for local runs.
+cluster_domain: "{{ lookup('env','CLUSTER_APPS_DOMAIN') | default('apps.ocp.CHANGEME.opentlc.com', true) }}"
+mailpit_smtp_host: "mailpit-smtp.mailpit.svc.cluster.local"
+mailpit_smtp_port: 1025
+
+# Course content template (selectable via survey)
+course_template: "ai-fundamentals"
+
+# Course content repo, cloned by the workbench init container over anonymous HTTPS.
+# Public GitHub repo -- reachable from any RHDP cluster. Fork-friendly: override git_user/git_repo.
+git_url: "https://github.com"
+git_user: "wlptn"
+git_repo: "educause-2026"
+git_branch: "rhdp"
+
+# Workbench image -- stock RHOAI minimal CPU py312 image (present on this cluster).
+# To use the custom-built image instead:
+#   image-registry.openshift-image-registry.svc:5000/educause-build/jupyter-edu:latest
+workbench_images:
+  jupyter: "registry.redhat.io/rhoai/odh-workbench-jupyter-minimal-cpu-py312-rhel9@sha256:516ef413bcfd9c8816bd5f82a06fd516eb2ed135718dfcd8bc59751c210a30bb"
+
+student_names: []

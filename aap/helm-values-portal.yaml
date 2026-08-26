@@ -1,0 +1,86 @@
+# Helm values for the Ansible Automation Portal.
+#
+# The portal is a SEPARATE component from the AAP Gateway, deployed via
+# Helm chart on OpenShift. It is built on Red Hat Developer Hub (Backstage)
+# and provides a self-service UI for launching AAP job templates.
+#
+# Full install guide: docs/portal-install.md
+#
+# Prerequisites before installing:
+#   1. Create an OAuth application in AAP Gateway
+#   2. Generate an API token (Write scope)
+#   3. Create the secrets-rhaap-portal secret in the aap-portal namespace
+#   4. Create the registry auth secret for OCI plugin delivery
+#
+# Install:
+#   helm repo add openshift-helm-charts https://charts.openshift.io/
+#   helm install redhat-rhaap-portal openshift-helm-charts/redhat-rhaap-portal \
+#     -n aap-portal -f aap/helm-values-portal.yaml
+
+redhat-developer-hub:
+  global:
+    clusterRouterBase: apps.ocp.CHANGEME.opentlc.com
+    pluginMode: oci
+
+  upstream:
+    backstage:
+      appConfig:
+        backend:
+          auth:
+            externalAccess:
+              - type: legacy
+                options:
+                  secret: ${BACKEND_SECRET}
+                  subject: legacy-default-config
+          database:
+            connection:
+              user: postgres
+              password: ${POSTGRESQL_ADMIN_PASSWORD}
+        catalog:
+          providers:
+            rhaap:
+              '{{- include "catalog.providers.env" . }}':
+                orgs: "Default"
+                sync:
+                  orgsUsersTeams:
+                    schedule:
+                      frequency: { minutes: 5 }
+                      timeout: { minutes: 2 }
+                  jobTemplates:
+                    enabled: true
+                    schedule:
+                      frequency: { minutes: 5 }
+                      timeout: { minutes: 2 }
+
+      extraEnvVars:
+        - name: CUSTOMER_SUPPORT_URL
+          value: ""
+        - name: ENABLE_AUTH_PROVIDER_MODULE_OVERRIDE
+          value: "true"
+        - name: BACKEND_SECRET
+          value: "educause2026portalsecret"
+        - name: POSTGRESQL_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redhat-rhaap-portal-postgresql
+              key: postgres-password
+        - name: AAP_HOST_URL
+          valueFrom:
+            secretKeyRef:
+              name: secrets-rhaap-portal
+              key: aap-host-url
+        - name: AAP_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: secrets-rhaap-portal
+              key: aap-token
+        - name: OAUTH_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: secrets-rhaap-portal
+              key: oauth-client-id
+        - name: OAUTH_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: secrets-rhaap-portal
+              key: oauth-client-secret

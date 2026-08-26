@@ -1,0 +1,6 @@
+---
+course_code: ""
+course_namespace: "course-{{ course_code | lower | regex_replace('[^a-z0-9-]', '-') }}"
+professor_email: "professor@university.edu"
+mailpit_smtp_host: "mailpit-smtp.mailpit.svc.cluster.local"
+mailpit_smtp_port: 1025

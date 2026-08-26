@@ -1,0 +1,25 @@
+---
+- name: Delete course namespace (cascades all resources)
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ course_namespace }}"
+
+- name: Send teardown notification email
+  community.general.mail:
+    host: "{{ mailpit_smtp_host }}"
+    port: "{{ mailpit_smtp_port }}"
+    from: "AAP Automation <aap@educause-demo.example.com>"
+    to: "{{ professor_email }}"
+    subject: "Course {{ course_code }} - Environment Torn Down"
+    body: |
+      The course environment for {{ course_code }} has been torn down.
+
+      Namespace "{{ course_namespace }}" and all associated resources
+      (workbenches, secrets, PVCs) have been deleted.
+
+      -- Ansible Automation Platform
+  ignore_errors: true

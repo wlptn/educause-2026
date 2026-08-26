@@ -1,0 +1,9 @@
+---
+course_code: ""
+course_name: ""
+department: "general"
+professor_email: "professor@university.edu"
+semester_start: ""
+semester_end: ""
+course_namespace: "course-{{ course_code | lower | regex_replace('[^a-z0-9-]', '-') }}"
+student_count: 5

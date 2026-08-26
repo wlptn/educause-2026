@@ -1,0 +1,18 @@
+---
+- name: Create model configuration secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: model-config
+        namespace: "{{ course_namespace }}"
+        labels:
+          educause.demo/course-code: "{{ course_code }}"
+          educause.demo/component: model-access
+      type: Opaque
+      stringData:
+        MODEL_ENDPOINT: "{{ model_endpoint }}"
+        MODEL_API_KEY: "{{ model_api_key }}"
+        MODEL_NAME: "{{ model_name }}"

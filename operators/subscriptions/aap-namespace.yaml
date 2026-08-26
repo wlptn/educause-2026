@@ -1,0 +1,16 @@
+# AAP is NOT pre-installed on the rhdp cluster, so this branch installs it.
+# Namespace + OperatorGroup are required before the Subscription can resolve.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aap
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: aap-operatorgroup
+  namespace: aap
+spec:
+  targetNamespaces:
+    - aap
+  upgradeStrategy: Default

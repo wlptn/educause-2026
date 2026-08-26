@@ -1,0 +1,16 @@
+FROM registry.redhat.io/rhoai/odh-workbench-jupyter-minimal-cpu-py312-rhel9@sha256:516ef413bcfd9c8816bd5f82a06fd516eb2ed135718dfcd8bc59751c210a30bb
+
+USER 0
+
+RUN pip install --no-cache-dir \
+    openai \
+    langchain \
+    langchain-openai \
+    httpx \
+    requests \
+    pandas \
+    numpy \
+    matplotlib \
+    ipywidgets
+
+USER 1001

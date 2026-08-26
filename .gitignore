@@ -1,0 +1,22 @@
+# Secrets -- never commit real credentials
+aap/credentials/git-scm-credential.yaml
+*.secret.yaml
+
+# Ansible
+*.retry
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# local scratch: read-only cluster audit output (not for commit)
+.cluster-audit/

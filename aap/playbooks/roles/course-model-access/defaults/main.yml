@@ -1,0 +1,21 @@
+---
+course_code: ""
+course_namespace: "course-{{ course_code | lower | regex_replace('[^a-z0-9-]', '-') }}"
+
+# rhdp branch: the cluster runs its OWN OpenShift AI + MaaS (Kuadrant + KServe).
+# qwen3-4b-instruct is served in the `llm` namespace, fronted by the MaaS gateway at
+#   http://maas.<cluster_domain>/llm/qwen3-4b-instruct   (cluster_domain = the apps wildcard,
+#   sandbox-specific; set in provision.yml / passed as an extra var).
+#
+# For the demo we use a single SHARED MaaS API key for all courses. The authoritative values
+# (endpoint / key / model) are injected by the AAP "MaaS Gateway" credential; the vars below are
+# fallbacks for local ansible-playbook runs. NEVER commit a real key.
+cluster_domain: "{{ lookup('env','CLUSTER_APPS_DOMAIN') | default('apps.ocp.CHANGEME.opentlc.com', true) }}"
+maas_host: "{{ lookup('env','MAAS_HOST') | default('maas.' ~ cluster_domain, true) }}"
+maas_path_prefix: "{{ lookup('env','MAAS_PATH_PREFIX') | default('llm', true) }}"
+
+model_name: "{{ lookup('env','MODEL_NAME') | default('qwen3-4b-instruct', true) }}"
+# OpenAI-compatible base URL. The dashboard's "External endpoint > View" is the source of truth;
+# the demo value comes from the AAP MaaS credential.
+model_endpoint: "{{ lookup('env','MODEL_ENDPOINT') | default('http://' ~ maas_host ~ '/' ~ maas_path_prefix ~ '/' ~ model_name ~ '/v1', true) }}"
+model_api_key: "{{ lookup('env','MODEL_API_KEY') | default('REPLACE_WITH_SHARED_MAAS_KEY', true) }}"

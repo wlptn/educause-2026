@@ -1,0 +1,239 @@
+---
+# One-time setup: configures AAP Controller with the project, credential,
+# and job templates needed for the Educause demo.
+#
+# Usage:
+#   export CONTROLLER_HOST=https://aap-aap.apps.ocp.CHANGEME.opentlc.com
+#   export CONTROLLER_USERNAME=admin
+#   export CONTROLLER_PASSWORD=<admin-password>
+#   export GIT_URL=https://github.com
+#   export GIT_USER=wlptn
+#   export MODEL_API_KEY=<shared-maas-api-key>
+#   export MODEL_ENDPOINT=http://maas.apps.<sandbox>.opentlc.com/llm/qwen3-4b-instruct/v1
+#   export MODEL_NAME=qwen3-4b-instruct
+#   export CLUSTER_APPS_DOMAIN=apps.ocp.<sandbox>.opentlc.com
+#   ansible-playbook aap/playbooks/setup-controller.yml
+#
+- name: Configure AAP Controller for Educause demo
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    controller_host: "{{ lookup('env', 'CONTROLLER_HOST') }}"
+    controller_username: "{{ lookup('env', 'CONTROLLER_USERNAME') | default('admin', true) }}"
+    controller_password: "{{ lookup('env', 'CONTROLLER_PASSWORD') }}"
+    controller_validate_certs: false
+    git_url: "{{ lookup('env', 'GIT_URL') | default('https://github.com', true) }}"
+    git_user: "{{ lookup('env', 'GIT_USER') | default('wlptn', true) }}"
+    model_api_key: "{{ lookup('env', 'MODEL_API_KEY') }}"
+    model_endpoint: "{{ lookup('env', 'MODEL_ENDPOINT') | default('http://maas.apps.ocp.CHANGEME.opentlc.com/llm/qwen3-4b-instruct/v1', true) }}"
+    model_name: "{{ lookup('env', 'MODEL_NAME') | default('qwen3-4b-instruct', true) }}"
+    organization_name: "Default"
+
+  tasks:
+    - name: Create OpenShift credential
+      ansible.controller.credential:
+        name: "OpenShift Cluster"
+        organization: "{{ organization_name }}"
+        credential_type: "OpenShift or Kubernetes API Bearer Token"
+        inputs:
+          host: "{{ lookup('env', 'K8S_HOST') | default('https://api.ocp.CHANGEME.opentlc.com:6443', true) }}"
+          verify_ssl: false
+          bearer_token: "{{ lookup('env', 'K8S_BEARER_TOKEN') | default(omit) }}"
+        state: present
+        controller_host: "{{ controller_host }}"
+        controller_username: "{{ controller_username }}"
+        controller_password: "{{ controller_password }}"
+        validate_certs: "{{ controller_validate_certs }}"
+      when: lookup('env', 'K8S_BEARER_TOKEN') | length > 0
+
+    - name: Create project from Git repo
+      ansible.controller.project:
+        name: "Educause 2026"
+        organization: "{{ organization_name }}"
+        scm_type: git
+        scm_url: "{{ git_url }}/{{ git_user }}/educause-2026.git"
+        scm_branch: rhdp
+        scm_update_on_launch: true
+        state: present
+        controller_host: "{{ controller_host }}"
+        controller_username: "{{ controller_username }}"
+        controller_password: "{{ controller_password }}"
+        validate_certs: "{{ controller_validate_certs }}"
+
+    - name: Wait for project sync
+      ansible.controller.project_update:
+        project: "Educause 2026"
+        organization: "{{ organization_name }}"
+        wait: true
+        timeout: 120
+        controller_host: "{{ controller_host }}"
+        controller_username: "{{ controller_username }}"
+        controller_password: "{{ controller_password }}"
+        validate_certs: "{{ controller_validate_certs }}"
+
+    - name: Store model API key as a custom credential type
+      ansible.controller.credential_type:
+        name: "MaaS API Key"
+        kind: cloud
+        inputs:
+          fields:
+            - id: model_api_key
+              label: API Key
+              type: string
+              secret: true
+            - id: model_endpoint
+              label: Endpoint URL
+              type: string
+            - id: model_name
+              label: Model Name
+              type: string
+        injectors:
+          extra_vars:
+            model_api_key: "{%raw%}{{ model_api_key }}{%endraw%}"
+            model_endpoint: "{%raw%}{{ model_endpoint }}{%endraw%}"
+            model_name: "{%raw%}{{ model_name }}{%endraw%}"
+        state: present
+        controller_host: "{{ controller_host }}"
+        controller_username: "{{ controller_username }}"
+        controller_password: "{{ controller_password }}"
+        validate_certs: "{{ controller_validate_certs }}"
+
+    - name: Create LiteLLM credential
+      ansible.controller.credential:
+        name: "MaaS Gateway"
+        organization: "{{ organization_name }}"
+        credential_type: "MaaS API Key"
+        inputs:
+          model_api_key: "{{ model_api_key }}"
+          model_endpoint: "{{ model_endpoint }}"
+          model_name: "{{ model_name }}"
+        state: present
+        controller_host: "{{ controller_host }}"
+        controller_username: "{{ controller_username }}"
+        controller_password: "{{ controller_password }}"
+        validate_certs: "{{ controller_validate_certs }}"
+
+    - name: Create Provision Course job template
+      ansible.controller.job_template:
+        name: "Provision Course Environment"
+        description: "Self-service: creates namespace, model access, and workbenches for a course"
+        organization: "{{ organization_name }}"
+        project: "Educause 2026"
+        playbook: "aap/playbooks/provision.yml"
+        inventory: "Demo Inventory"
+        credentials:
+          - "OpenShift Cluster"
+          - "MaaS Gateway"
+        survey_enabled: true
+        survey_spec:
+          name: "Course Details"
+          description: "Fill in course details to provision an AI lab environment"
+          spec:
+            - question_name: "Course Name"
+              question_description: "Full name, e.g. 'Intro to AI for Business'"
+              variable: course_name
+              type: text
+              required: true
+              max: 128
+            - question_name: "Course Code"
+              question_description: "Short code, e.g. 'CS485' -- used in namespace and URLs"
+              variable: course_code
+              type: text
+              required: true
+              max: 20
+            - question_name: "Department"
+              variable: department
+              type: text
+              required: true
+              default: "computer-science"
+              max: 64
+            - question_name: "Professor Email"
+              variable: professor_email
+              type: text
+              required: true
+              max: 128
+            - question_name: "Number of Students"
+              variable: student_count
+              type: integer
+              required: true
+              default: 5
+              min: 1
+              max: 50
+            - question_name: "Semester Start Date"
+              question_description: "YYYY-MM-DD"
+              variable: semester_start
+              type: text
+              required: true
+              max: 10
+            - question_name: "Semester End Date"
+              question_description: "YYYY-MM-DD"
+              variable: semester_end
+              type: text
+              required: true
+              max: 10
+            - question_name: "Workbench Type"
+              variable: workbench_type
+              type: multiplechoice
+              required: true
+              default: jupyter
+              choices: "jupyter"
+        state: present
+        controller_host: "{{ controller_host }}"
+        controller_username: "{{ controller_username }}"
+        controller_password: "{{ controller_password }}"
+        validate_certs: "{{ controller_validate_certs }}"
+
+    - name: Create Teardown Course job template
+      ansible.controller.job_template:
+        name: "Teardown Course Environment"
+        description: "Self-service: removes namespace and all resources for a course"
+        organization: "{{ organization_name }}"
+        project: "Educause 2026"
+        playbook: "aap/playbooks/teardown.yml"
+        inventory: "Demo Inventory"
+        credentials:
+          - "OpenShift Cluster"
+        survey_enabled: true
+        survey_spec:
+          name: "Teardown Confirmation"
+          description: "Confirm teardown of a course environment"
+          spec:
+            - question_name: "Course Code"
+              question_description: "Same code used during provisioning"
+              variable: course_code
+              type: text
+              required: true
+              max: 20
+            - question_name: "Professor Email"
+              question_description: "For teardown confirmation notification"
+              variable: professor_email
+              type: text
+              required: true
+              max: 128
+            - question_name: "Confirm Teardown"
+              question_description: "Select 'yes' to confirm deletion of all course resources"
+              variable: confirm_teardown
+              type: multiplechoice
+              required: true
+              default: "no"
+              choices: "yes\nno"
+        state: present
+        controller_host: "{{ controller_host }}"
+        controller_username: "{{ controller_username }}"
+        controller_password: "{{ controller_password }}"
+        validate_certs: "{{ controller_validate_certs }}"
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg:
+          - "AAP Controller configured successfully!"
+          - "Project: Educause 2026 (synced from GitHub)"
+          - "Credentials: MaaS Gateway{{ ', OpenShift Cluster' if lookup('env', 'K8S_BEARER_TOKEN') | length > 0 else '' }}"
+          - "Job Templates: Provision Course Environment, Teardown Course Environment"
+          - ""
+          - "Next steps:"
+          - "  1. If you skipped the OpenShift credential, create it manually in the AAP UI"
+          - "  2. Create a 'Demo Inventory' with localhost in the AAP UI"
+          - "  3. Test by launching 'Provision Course Environment' from the AAP UI"

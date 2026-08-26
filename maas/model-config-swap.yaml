@@ -1,0 +1,18 @@
+# rhdp: swap model configuration -- alternative backend for the "live swap" demo moment.
+# Apply to a course namespace to switch the backend, then restart workbenches:
+#   oc apply -f maas/model-config-swap.yaml -n course-cs485
+#   oc rollout restart deployment -n course-cs485   # (or restart the workbench notebook pod)
+#
+# Only qwen3-4b-instruct is confirmed served today; update MODEL_NAME/MODEL_ENDPOINT when a
+# second model is added to the cluster's MaaS. Shared demo key -- do NOT commit a real key.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: model-config
+  labels:
+    educause.demo/component: model-access
+type: Opaque
+stringData:
+  MODEL_ENDPOINT: "http://maas.apps.ocp.CHANGEME.opentlc.com/llm/qwen3-4b-instruct/v1"
+  MODEL_API_KEY: "REPLACE_WITH_SHARED_MAAS_KEY"
+  MODEL_NAME: "qwen3-4b-instruct"

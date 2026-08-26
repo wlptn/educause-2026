@@ -1,0 +1,13 @@
+apiVersion: aap.ansible.com/v1alpha1
+kind: AutomationController
+metadata:
+  name: aap-controller
+  namespace: aap
+spec:
+  replicas: 1
+  admin_user: admin
+  # admin_password_secret: aap-admin-password
+  postgres_storage_class: ""  # uses default StorageClass
+  postgres_storage_requirements:
+    requests:
+      storage: 8Gi

@@ -1,0 +1,73 @@
+# OpenShift BuildConfig for the custom Jupyter education image.
+#
+# This builds the Dockerfile.jupyter-edu image and pushes it to the
+# internal registry (if available) or an external registry.
+#
+# Prerequisites:
+#   - A pull secret for registry.redhat.io in the build namespace
+#   - For external registry: a push secret for the target registry
+#
+# Usage with internal registry:
+#   oc apply -f workbenches/buildconfig.yaml -n educause-build
+#   oc start-build jupyter-edu --from-dir=. -n educause-build --follow
+#
+# Usage with Quay.io (if internal registry is not available):
+#   1. Create push secret:
+#      oc create secret docker-registry quay-push \
+#        --docker-server=quay.io \
+#        --docker-username=YOUR_USER \
+#        --docker-password=YOUR_TOKEN \
+#        -n educause-build
+#   2. Update spec.output.to below to point to your Quay repo
+#   3. oc apply -f workbenches/buildconfig.yaml -n educause-build
+#   4. oc start-build jupyter-edu --from-dir=. -n educause-build --follow
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: educause-build
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: jupyter-edu
+  namespace: educause-build
+  labels:
+    educause.demo/component: workbench-image
+spec:
+  source:
+    type: Dockerfile
+    dockerfile: |
+      FROM registry.redhat.io/rhoai/odh-workbench-jupyter-minimal-cpu-py312-rhel9@sha256:516ef413bcfd9c8816bd5f82a06fd516eb2ed135718dfcd8bc59751c210a30bb
+
+      USER 0
+
+      RUN pip install --no-cache-dir \
+          openai \
+          langchain \
+          langchain-openai \
+          httpx \
+          requests \
+          pandas \
+          numpy \
+          matplotlib \
+          ipywidgets
+
+      USER 1001
+  strategy:
+    type: Docker
+    dockerStrategy:
+      noCache: false
+  output:
+    to:
+      kind: ImageStreamTag
+      name: jupyter-edu:latest
+  triggers: []
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: jupyter-edu
+  namespace: educause-build
+  labels:
+    educause.demo/component: workbench-image
