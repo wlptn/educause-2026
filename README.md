@@ -20,7 +20,7 @@ on top of **OpenShift AI + Models-as-a-Service (MaaS)**.
 
 **This branch installs / configures:**
 
-- Ansible Automation Platform (operator + AutomationController)
+- Ansible Automation Platform (operator + unified **AnsibleAutomationPlatform**: Gateway + Controller)
 - Per-course namespaces, quotas, RBAC, and network policies
 - Per-course model access (a `model-config` Secret pointing at the in-cluster MaaS)
 - RHOAI Jupyter workbenches per student, pre-loaded with course notebooks
@@ -44,7 +44,7 @@ to verify against your specific cluster.
 ```bash
 oc apply -k operators/subscriptions/      # Namespace + OperatorGroup + Subscription (AAP only)
 oc get csv -n aap -w                       # wait for the AAP operator to report Succeeded
-oc apply -k operators/operator-configs/    # AutomationController
+oc apply -k operators/operator-configs/    # AnsibleAutomationPlatform (Gateway + Controller)
 ```
 
 Confirm the channel exists first if the operator won't resolve:
@@ -60,7 +60,7 @@ Point the setup playbook at your Controller and cluster. The MaaS endpoint/key/m
 supplied here and injected into jobs via the **MaaS Gateway** credential:
 
 ```bash
-export CONTROLLER_HOST=https://<aap-controller-route>
+export CONTROLLER_HOST=https://<aap-gateway-route>   # gateway host aap-aap.<apps-domain>; it proxies the Controller API
 export CONTROLLER_USERNAME=admin
 export CONTROLLER_PASSWORD=<admin-password>
 export GIT_URL=https://github.com
@@ -100,7 +100,7 @@ Jupyter workbench per student with the selected notebook pack pre-loaded.
 ## Repo Structure
 
 ```
-operators/           AAP install only (Subscription + AutomationController). Kustomize.
+operators/           AAP install only (Subscription + AnsibleAutomationPlatform: Gateway + Controller). Kustomize.
 maas/                Reference model-config Secret templates (in-cluster MaaS endpoint)
 aap/                 AAP portal Helm values, credentials, job templates, Ansible playbooks
   playbooks/         Ansible project synced by AAP Controller from git

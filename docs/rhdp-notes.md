@@ -27,7 +27,7 @@ workbenches) on top and installs **only AAP**.
 
 ## What this branch installs vs assumes
 - **Installs:** AAP operator only — `operators/subscriptions/` (Namespace + OperatorGroup +
-  Subscription) and `operators/operator-configs/automationcontroller.yaml`.
+  Subscription) and `operators/operator-configs/ansible-automation-platform.yaml` — the unified **AnsibleAutomationPlatform** CR (Gateway + Controller; Hub/EDA/Lightspeed disabled). The self-service Portal (docs/portal-install.md) needs the Platform **Gateway** for OAuth apps / API tokens, so a standalone controller is not enough. Gateway route `aap` → `aap-aap.<apps-domain>`; admin login in secret `aap-admin-password` (user `admin`).
 - **Assumes present (do not apply):** RHOAI/DSC, Serverless (n/a), Service Mesh, Connectivity
   Link, GPU stack — all already installed and ArgoCD-owned.
 
@@ -48,7 +48,7 @@ workbenches) on top and installs **only AAP**.
 
 ## Suggested setup order
 1. `oc apply -k operators/subscriptions/`  → wait for AAP CSV `Succeeded`
-2. `oc apply -k operators/operator-configs/`  → AutomationController comes up
+2. `oc apply -k operators/operator-configs/`  → AnsibleAutomationPlatform (Gateway + Controller) comes up (~10–15 min)
 3. Set env (`CONTROLLER_*`, `GIT_URL`/`GIT_USER`, `MODEL_ENDPOINT/KEY/NAME`, `CLUSTER_APPS_DOMAIN`, `K8S_*`)
    then `ansible-playbook aap/playbooks/setup-controller.yml`
 4. Launch **Provision Course Environment** from AAP.

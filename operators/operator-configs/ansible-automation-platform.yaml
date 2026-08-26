@@ -1,0 +1,29 @@
+# Unified Ansible Automation Platform (Gateway + Controller) for the rhdp demo.
+#
+# WHY the unified CR (not a standalone AutomationController):
+#   The self-service Automation Portal (docs/portal-install.md) authenticates through
+#   the AAP Platform *Gateway* -- OAuth applications, unified Access Management, API
+#   tokens and gateway settings all live in the Gateway. A standalone
+#   AutomationController does not expose any of that.
+#
+# Named `aap` in namespace `aap` so the Gateway route resolves to
+# `aap-aap.<apps-domain>` -- exactly the AAP_HOST_URL the portal install expects.
+#
+# Footprint kept lean: Gateway + Controller only; Hub, EDA, Lightspeed disabled.
+# Admin login is auto-generated into secret `aap-admin-password` (user `admin`).
+# PostgreSQL uses the cluster default StorageClass (gp3-csi on RHDP).
+apiVersion: aap.ansible.com/v1alpha1
+kind: AnsibleAutomationPlatform
+metadata:
+  name: aap
+  namespace: aap
+spec:
+  # Gateway is always deployed by the unified platform -- it is the entry point.
+  controller:
+    disabled: false
+  hub:
+    disabled: true
+  eda:
+    disabled: true
+  lightspeed:
+    disabled: true
