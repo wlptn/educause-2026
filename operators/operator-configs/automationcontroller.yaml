@@ -1,4 +1,7 @@
-apiVersion: aap.ansible.com/v1alpha1
+# Standalone controller lives in the automationcontroller.ansible.com group;
+# aap.ansible.com only owns the unified AnsibleAutomationPlatform CR.
+# v1beta1 is the served/storage version on AAP 2.7 (verified on a live RHDP cluster).
+apiVersion: automationcontroller.ansible.com/v1beta1
 kind: AutomationController
 metadata:
   name: aap-controller
