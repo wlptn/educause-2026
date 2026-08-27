@@ -38,11 +38,14 @@
           educause.demo/course-code: "{{ course_code }}"
           educause.demo/student: "{{ item }}"
           opendatahub.io/dashboard: "true"
+          opendatahub.io/odh-managed: "true"
+          app: "{{ course_code | lower }}-{{ item }}"
         annotations:
-          notebooks.opendatahub.io/inject-oauth: "true"
+          notebooks.opendatahub.io/inject-auth: "true"
+          opendatahub.io/hardware-profile-name: "default-profile"
+          opendatahub.io/hardware-profile-namespace: "redhat-ods-applications"
           opendatahub.io/image-display-name: "Jupyter Education"
           notebooks.opendatahub.io/last-image-selection: "{{ workbench_images[workbench_type] | regex_replace('^.*/', '') }}"
-          opendatahub.io/accelerator-name: ""
           openshift.io/display-name: "{{ course_name }} - {{ item }}"
       spec:
         template:
@@ -99,6 +102,11 @@
                 envFrom:
                   - secretRef:
                       name: model-config
+                env:
+                  - name: NOTEBOOK_ARGS
+                    value: "--ServerApp.port=8888 --ServerApp.token='' --ServerApp.password='' --ServerApp.base_url=/notebook/{{ course_namespace }}/{{ course_code | lower }}-{{ item }} --ServerApp.quit_button=False"
+                  - name: JUPYTER_IMAGE
+                    value: "{{ workbench_images[workbench_type] }}"
                 volumeMounts:
                   - name: workspace
                     mountPath: /opt/app-root/src
