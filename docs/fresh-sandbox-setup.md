@@ -35,11 +35,11 @@ oc get secret aap-admin-password -n aap -o jsonpath='{.data.password}' | base64 
 
 ### 2. Deploy Mailpit (captures provisioning emails)
 The provisioning playbook sends welcome emails to `mailpit-smtp.mailpit.svc:1025`.
-Optionally set the route host to your apps domain in `infra/mailpit/deployment.yaml` (the SMTP
-service works regardless — the route is only for the inbox UI), then apply:
+The route host is auto-assigned by OpenShift (no domain edit needed):
 ```bash
 oc apply -k infra/mailpit/
 ```
+Find the inbox UI URL with `oc get route -n mailpit`.
 The inbox UI is the `mailpit` route in the `mailpit` namespace.
 
 ### 3. Install the self-service portal

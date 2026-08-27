@@ -56,7 +56,19 @@ oc get packagemanifest ansible-automation-platform-operator \
   -n openshift-marketplace -o jsonpath='{.status.channels[*].name}{"\n"}'
 ```
 
-### 2. Configure the AAP Controller
+### 2. Deploy Mailpit (captures provisioning emails)
+
+The provisioning playbook emails students and professors via the in-cluster SMTP service
+`mailpit-smtp.mailpit.svc:1025`. The route host is auto-assigned by OpenShift, so no domain
+edit is needed:
+
+```bash
+oc apply -k infra/mailpit/
+```
+
+Find the inbox UI URL with `oc get route -n mailpit`.
+
+### 3. Configure the AAP Controller
 
 Point the setup playbook at your Controller and cluster. The MaaS endpoint/key/model are
 supplied here and injected into jobs via the **MaaS Gateway** credential:
@@ -98,7 +110,7 @@ MaaS credentials, and the **Provision / Teardown Course Environment** job templa
 > use these env vars — it authenticates with OpenShift Secrets built from an OAuth client id/secret
 > and API token you create in the gateway. See that doc for its own inputs.
 
-### 3. Provision a course
+### 4. Provision a course
 
 Launch **Provision Course Environment** from the AAP UI (or the Self-Service Portal) and fill in
 the survey. The workflow creates the namespace, writes the model-access Secret, and deploys a
