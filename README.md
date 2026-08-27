@@ -37,6 +37,8 @@ on top of **OpenShift AI + Models-as-a-Service (MaaS)**.
 Before you start, skim **[docs/rhdp-notes.md](docs/rhdp-notes.md)** — it lists the four things
 to verify against your specific cluster.
 
+For a full end-to-end deployment walkthrough on a new cluster, see **[docs/fresh-sandbox-setup.md](docs/fresh-sandbox-setup.md)**.
+
 ## Quick Start
 
 ### 1. Install AAP
