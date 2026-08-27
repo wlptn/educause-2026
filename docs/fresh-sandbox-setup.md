@@ -57,7 +57,11 @@ Export the environment variables (see the README table) and run:
 ansible-playbook aap/playbooks/setup-controller.yml
 ```
 Authentication uses a gateway API token via `CONTROLLER_OAUTH_TOKEN` — username/password does not
-work behind the 2.5+ platform gateway. This creates the project, credentials, the Demo Inventory,
+work behind the 2.5+ platform gateway. Create the token in the gateway under **Access Management ->
+API Tokens -> Create API Token** (leave Application blank for a personal token, scope **Write**), then
+`export CONTROLLER_OAUTH_TOKEN=<token>`. Note this is a *personal API token* and is NOT the same as the
+portal's OAuth *application* (step 3) — different place, different purpose. This creates the project,
+credentials, the Demo Inventory,
 and the **Provision / Teardown Course Environment** job templates (with the course dropdown).
 
 ### 5. Provision a course
