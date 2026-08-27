@@ -99,9 +99,6 @@
                 envFrom:
                   - secretRef:
                       name: model-config
-                env:
-                  - name: NOTEBOOK_ARGS
-                    value: "--NotebookApp.token='' --NotebookApp.password=''"
                 volumeMounts:
                   - name: workspace
                     mountPath: /opt/app-root/src
@@ -116,7 +113,7 @@
 
 - name: Build workbench URL list
   ansible.builtin.set_fact:
-    workbench_urls: "{{ workbench_urls | default({}) | combine({item: 'https://' + course_code | lower + '-' + item + '-' + course_namespace + '.' + cluster_domain}) }}"
+    workbench_urls: "{{ workbench_urls | default({}) | combine({item: 'https://data-science-gateway.' + cluster_domain + '/notebook/' + course_namespace + '/' + (course_code | lower) + '-' + item + '/'}) }}"
   loop: "{{ student_list }}"
   loop_control:
     label: "{{ item }}"
