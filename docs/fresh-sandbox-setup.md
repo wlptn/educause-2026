@@ -35,10 +35,9 @@ oc get secret aap-admin-password -n aap -o jsonpath='{.data.password}' | base64 
 
 ### 2. Deploy Mailpit (captures provisioning emails)
 The provisioning playbook sends welcome emails to `mailpit-smtp.mailpit.svc:1025`.
-Create the namespace, set the route host to your apps domain in `infra/mailpit/deployment.yaml`,
-then apply:
+Optionally set the route host to your apps domain in `infra/mailpit/deployment.yaml` (the SMTP
+service works regardless — the route is only for the inbox UI), then apply:
 ```bash
-oc create namespace mailpit
 oc apply -k infra/mailpit/
 ```
 The inbox UI is the `mailpit` route in the `mailpit` namespace.
