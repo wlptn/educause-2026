@@ -60,9 +60,8 @@ Point the setup playbook at your Controller and cluster. The MaaS endpoint/key/m
 supplied here and injected into jobs via the **MaaS Gateway** credential:
 
 ```bash
-export CONTROLLER_HOST=https://<aap-gateway-route>   # gateway host aap-aap.<apps-domain>; it proxies the Controller API
-export CONTROLLER_USERNAME=admin
-export CONTROLLER_PASSWORD=<admin-password>
+export CONTROLLER_HOST=https://<gateway-host>          # oc get route aap -n aap  (aap-aap.<apps-domain>)
+export CONTROLLER_OAUTH_TOKEN=<gateway-api-token>   # gateway: Access Management > API Tokens (scope Write)
 export GIT_URL=https://github.com
 export GIT_USER=wlptn
 export CLUSTER_APPS_DOMAIN=apps.ocp.<sandbox>.opentlc.com
@@ -77,6 +76,25 @@ ansible-playbook aap/playbooks/setup-controller.yml
 
 This creates the SCM project (synced from this repo's **`rhdp`** branch), the OpenShift and
 MaaS credentials, and the **Provision / Teardown Course Environment** job templates with surveys.
+
+#### Environment variables (setup-controller.yml)
+
+| Variable | Required | Purpose | Example / how to get |
+|---|---|---|---|
+| `CONTROLLER_HOST` | yes | AAP **gateway** URL (proxies the Controller API) | `oc get route aap -n aap` → `https://aap-aap.<apps-domain>` |
+| `CONTROLLER_OAUTH_TOKEN` | yes | Controller API auth. Token auth is required — username/password 404s behind the 2.5+ gateway | Gateway → **Access Management → API Tokens** → Create, scope **Write** |
+| `GIT_URL` | no (`https://github.com`) | Git host of the content repo | `https://github.com` |
+| `GIT_USER` | no (`wlptn`) | Git org/user → `$GIT_URL/$GIT_USER/educause-2026.git`, branch `rhdp` | `wlptn` |
+| `CLUSTER_APPS_DOMAIN` | yes | Apps wildcard domain; builds the workbench / RHOAI dashboard / portal / teardown URLs baked into emails | `apps.ocp.<sandbox>.opentlc.com` |
+| `K8S_HOST` | yes | OpenShift API endpoint (OpenShift credential) | `https://api.ocp.<sandbox>.opentlc.com:6443` |
+| `K8S_BEARER_TOKEN` | yes | Bearer token for the OpenShift credential | `$(oc whoami -t)` |
+| `MODEL_ENDPOINT` | yes | MaaS OpenAI-compatible base URL — the `/v1` suffix is required | `http://maas.<apps-domain>/llm/qwen3-4b-instruct/v1` |
+| `MODEL_NAME` | no (`qwen3-4b-instruct`) | Served model id | `qwen3-4b-instruct` |
+| `MODEL_API_KEY` | yes | Shared MaaS API key, injected into workbenches — never commit | mint from the MaaS dev portal |
+
+> The self-service **portal** install ([docs/portal-install.md](docs/portal-install.md)) does **not**
+> use these env vars — it authenticates with OpenShift Secrets built from an OAuth client id/secret
+> and API token you create in the gateway. See that doc for its own inputs.
 
 ### 3. Provision a course
 

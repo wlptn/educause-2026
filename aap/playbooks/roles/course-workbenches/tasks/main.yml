@@ -41,6 +41,7 @@
         annotations:
           notebooks.opendatahub.io/inject-oauth: "true"
           opendatahub.io/image-display-name: "Jupyter Education"
+          notebooks.opendatahub.io/last-image-selection: "{{ workbench_images[workbench_type] | regex_replace('^.*/', '') }}"
           opendatahub.io/accelerator-name: ""
           openshift.io/display-name: "{{ course_name }} - {{ item }}"
       spec:
@@ -82,7 +83,7 @@
                   - name: workspace
                     mountPath: /workspace
             containers:
-              - name: notebook
+              - name: "{{ course_code | lower }}-{{ item }}"
                 image: "{{ workbench_images[workbench_type] }}"
                 resources:
                   requests:
