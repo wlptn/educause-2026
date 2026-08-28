@@ -53,10 +53,16 @@ redhat-developer-hub.global.clusterRouterBase=$(oc get ingresses.config/cluster 
 `/api/auth/rhaap/handler/frame`.
 
 ### 4. Configure the AAP Controller
-Export the environment variables (see the README table) and run:
+Set the environment (one helper does the rest), then run:
 ```bash
+export CONTROLLER_OAUTH_TOKEN=<gateway API token, Write scope>   # Access Management > API Tokens
+source scripts/setup-env.sh    # derives CONTROLLER_HOST/CLUSTER_APPS_DOMAIN/MODEL_*/K8S_* from the
+                               # logged-in cluster, mints a fresh 24h MaaS token, and verifies it (200)
 ansible-playbook aap/playbooks/setup-controller.yml
 ```
+`scripts/setup-env.sh` auto-derives everything but `CONTROLLER_OAUTH_TOKEN`. It mints the MaaS model
+token with `oc create token ... --duration=24h` (the portal's tokens are only ~4h) and checks it
+returns 200 from `/v1/models`, so a dead key fails here instead of at the demo's payoff cell.
 Authentication uses a gateway API token via `CONTROLLER_OAUTH_TOKEN` — username/password does not
 work behind the 2.5+ platform gateway. Create the token in the gateway under **Access Management ->
 API Tokens -> Create API Token** (leave Application blank for a personal token, scope **Write**), then

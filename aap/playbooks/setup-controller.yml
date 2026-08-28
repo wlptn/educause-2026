@@ -35,6 +35,21 @@
     model_name: "{{ lookup('env', 'MODEL_NAME') | default('qwen3-4b-instruct', true) }}"
     organization_name: "Default"
 
+  pre_tasks:
+    - name: Verify required environment variables are set (fail fast with a clear message)
+      ansible.builtin.assert:
+        quiet: true
+        that:
+          - "lookup('env', 'CONTROLLER_HOST') | length > 0"
+          - "lookup('env', 'CONTROLLER_OAUTH_TOKEN') | length > 0"
+          - "lookup('env', 'CLUSTER_APPS_DOMAIN') | length > 0"
+          - "lookup('env', 'MODEL_API_KEY') | length > 0"
+          - "lookup('env', 'K8S_HOST') | length > 0"
+          - "lookup('env', 'K8S_BEARER_TOKEN') | length > 0"
+        fail_msg: >-
+          Missing required environment variables. Run `source scripts/setup-env.sh`
+          (after `export CONTROLLER_OAUTH_TOKEN=<gateway API token>`), then re-run this playbook.
+
   tasks:
     - name: Create Demo Inventory (localhost) for the job templates
       ansible.controller.inventory:
