@@ -149,7 +149,7 @@
       - {{ student }}: {{ workbench_urls[student] }}
       {% endfor %}
 
-      RHOAI Dashboard: https://rhods-dashboard-redhat-ods-applications.{{ cluster_domain }}
+      RHOAI Dashboard: https://data-science-gateway.{{ cluster_domain }}
 
       {% if env_duration | default('semester') != 'semester' %}
       This environment will be automatically torn down at {{ semester_end }}.
@@ -186,7 +186,7 @@
       Your workbench has pre-configured access to AI models -- no API keys or setup required.
 
       Want to explore the full platform?
-      RHOAI Dashboard: https://rhods-dashboard-redhat-ods-applications.{{ cluster_domain }}
+      RHOAI Dashboard: https://data-science-gateway.{{ cluster_domain }}
 
       -- {{ course_name }} Course Staff
   loop: "{{ student_list }}"
