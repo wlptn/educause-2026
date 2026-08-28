@@ -125,9 +125,14 @@ oc create secret generic redhat-rhaap-portal-dynamic-plugins-registry-auth \
 
 ```bash
 helm repo add openshift-helm-charts https://charts.openshift.io/
+
+# clusterRouterBase must match this cluster; auto-detect it and override at install
+# (so you never have to edit helm-values-portal.yaml):
+DOMAIN=$(oc get ingresses.config/cluster -o jsonpath='{.spec.domain}')
 helm install redhat-rhaap-portal openshift-helm-charts/redhat-rhaap-portal \
-  -n aap-portal \
-  -f aap/helm-values-portal.yaml
+  -n aap-portal --version 2.2.7 \
+  -f aap/helm-values-portal.yaml \
+  --set-string redhat-developer-hub.global.clusterRouterBase="$DOMAIN"
 ```
 
 See `aap/helm-values-portal.yaml` in this repo for the values file. Key

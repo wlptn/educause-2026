@@ -19,6 +19,8 @@
 
 redhat-developer-hub:
   global:
+    # Override at install: --set-string redhat-developer-hub.global.clusterRouterBase=$DOMAIN
+    # (DOMAIN=$(oc get ingresses.config/cluster -o jsonpath='{.spec.domain}'))
     clusterRouterBase: apps.ocp.CHANGEME.opentlc.com
     pluginMode: oci
 

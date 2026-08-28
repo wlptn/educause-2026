@@ -47,8 +47,9 @@ Follow [docs/portal-install.md](portal-install.md). In short: in the AAP gateway
 application (Authorization code, Confidential, **PKCE off**, organization `Default`) and an API
 token (scope Write), enable external OAuth token creation, then create the `aap-portal` project,
 its secrets, and `helm install redhat-rhaap-portal openshift-helm-charts/redhat-rhaap-portal
---version 2.2.7 -n aap-portal -f aap/helm-values-portal.yaml` (set your apps domain in the values
-first). Finish by setting the OAuth redirect URI to the portal route's
+--version 2.2.7 -n aap-portal -f aap/helm-values-portal.yaml` (override the domain at install with `--set-string
+redhat-developer-hub.global.clusterRouterBase=$(oc get ingresses.config/cluster -o jsonpath='{.spec.domain}')`
+— no file edit needed). Finish by setting the OAuth redirect URI to the portal route's
 `/api/auth/rhaap/handler/frame`.
 
 ### 4. Configure the AAP Controller
